@@ -6,6 +6,7 @@
 正文
 ========================
 > sock5 rfc：http://www.faqs.org/rfcs/rfc1928.html
+
 说好帮别人搭proxy的，所以就稍微看了下sock5的协议，不带认证的话还是挺简单的
 代码比较搓，用Python的Threading TCPServer做，也就是a thread per connection的节奏……
 有空再用gevent或者reactor改改咯！XD
