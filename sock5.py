@@ -1,12 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+try:
+    from gevent import monkey
+    monkey.patch_all()
+except:
+    print 'Import gevent failed!'
+
 import SocketServer
 import struct
 import logging
 import socket
 import select
 import errno
+import threading
 
 #Commands
 CMD_CONNECT = 1
@@ -29,9 +36,6 @@ REP_ADTY_NOT_SUPPORTED = 8
 REP_UNASSIGNED = 9
 
 class YXSock5Exception(Exception):
-    pass
-
-class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass
 
 class LocalServer(SocketServer.StreamRequestHandler):
@@ -74,11 +78,11 @@ class LocalServer(SocketServer.StreamRequestHandler):
                     self.reply(REP_HOST_UNREACHABLE)
                 raise
             self.reply(REP_SUCCEEDED)
-            self.handle_stream(self.request, remote)
+            self.forward_sockets(self.request, remote)
         except Exception, e:
             logging.warn(e)
 
-    def handle_stream(self, local, remote):
+    def forward_sockets(self, local, remote):
         fdset = [local, remote]
         try:
             while True:
@@ -93,6 +97,10 @@ class LocalServer(SocketServer.StreamRequestHandler):
             remote.close()
 
 if __name__ == '__main__':
-    server = ThreadingTCPServer(('0.0.0.0', 8089), LocalServer)
+    server = SocketServer.ThreadingTCPServer(('0.0.0.0', 8089), LocalServer)
     server.allow_reuse_address = True
-    server.serve_forever()
+    #server.serve_forever()
+    t = threading.Thread(target=server.serve_forever)
+    t.setDaemon(True)
+    t.start()
+    t.join()
