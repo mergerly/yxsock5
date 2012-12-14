@@ -97,10 +97,16 @@ class LocalServer(SocketServer.StreamRequestHandler):
             remote.close()
 
 if __name__ == '__main__':
-    server = SocketServer.ThreadingTCPServer(('0.0.0.0', 8089), LocalServer)
-    server.allow_reuse_address = True
-    #server.serve_forever()
-    t = threading.Thread(target=server.serve_forever)
-    t.setDaemon(True)
-    t.start()
-    t.join()
+    import sys, daemon
+    logging.basicConfig(filename='/var/log/yxsock5.log')
+    daemon.daemonize()
+    daemon.create_pid_file('yxsock5')
+    def _():
+        server = SocketServer.ThreadingTCPServer(('0.0.0.0', 8089), LocalServer)
+        server.allow_reuse_address = True
+        #server.serve_forever()
+        t = threading.Thread(target=server.serve_forever)
+        t.setDaemon(True)
+        t.start()
+        t.join()
+    _()
