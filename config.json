@@ -1,0 +1,1 @@
+{    "pid_file": "/tmp/yxsock5.pid",    "log_file": "/tmp/yxsock5.log",    "listen_addr": "0.0.0.0",    "listen_port": 8089,    "daemon": 1}

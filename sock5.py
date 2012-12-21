@@ -96,17 +96,50 @@ class LocalServer(SocketServer.StreamRequestHandler):
         finally:
             remote.close()
 
+def parse_args():
+    import argparse
+    #parse args
+    parser = argparse.ArgumentParser(description='Run yxsock5 server.', prog='yxsock5')
+    parser.add_argument('-f', dest='config_file', nargs='?', help='Load from a configuration file.')
+    parser.add_argument('-P', dest='pid_file', nargs='?', help='Set file path for the pid file.', default='/var/run/yxsock5.pid')
+    parser.add_argument('-L', dest='log_file', nargs='?', help='Set file path for the log file.', default='/var/log/yxsock5.pid')
+    parser.add_argument('-a', dest='addr', nargs='?', help='Set the listening address.', default='0.0.0.0')
+    parser.add_argument('-p', dest='port', nargs='?', help='Set the listening address.', default=8089, type=int)
+    parser.add_argument('-d', dest='daemon', action='store_true', help='Launch as daemon.')
+    args = parser.parse_args()
+    return args
+
+def main():
+    args = parse_args()
+    pidfile = args.pid_file
+    logfile = args.log_file
+    addr = args.addr
+    port = args.port
+    dae = args.daemon
+    if args.config_file:
+        with open(args.config_file, 'r') as f:
+            import json
+            config = f.read()
+            tmp = json.loads(config)
+            pidfile = tmp['pid_file'] if 'pid_file' in tmp else pidfile
+            logfile = tmp['log_file'] if 'log_file' in tmp else logfile
+            addr = tmp['listen_addr'] if 'listen_addr' in tmp else addr
+            port = tmp['listen_port'] if 'listen_port' in tmp else port
+            dae = tmp['daemon'] if 'daemon' in tmp else dae
+    #set up logging
+    logging.basicConfig(filename=logfile, level=logging.WARNING)
+    #create daemon
+    import daemon
+    if dae:
+        daemon.daemonize()
+    daemon.create_pid_file(pidfile)
+    #create server
+    server = SocketServer.ThreadingTCPServer((addr, port), LocalServer)
+    server.allow_reuse_address = True
+    t = threading.Thread(target=server.serve_forever)
+    t.setDaemon(True)
+    t.start()
+    t.join()
+
 if __name__ == '__main__':
-    import sys, daemon
-    logging.basicConfig(filename='/var/log/yxsock5.log')
-    daemon.daemonize()
-    daemon.create_pid_file('yxsock5')
-    def _():
-        server = SocketServer.ThreadingTCPServer(('0.0.0.0', 8089), LocalServer)
-        server.allow_reuse_address = True
-        #server.serve_forever()
-        t = threading.Thread(target=server.serve_forever)
-        t.setDaemon(True)
-        t.start()
-        t.join()
-    _()
+    main()

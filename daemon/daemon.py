@@ -10,8 +10,7 @@ import logging
 
 DEFAULT_DEVNULL = os.devnull
 
-def create_pid_file(name, path='/var/run/'):
-    fpath = os.path.join(path, name+'.pid')
+def create_pid_file(fpath):
     try:
         fd = os.open(fpath, os.O_RDWR|os.O_CREAT, 0644)
         fcntl.lockf(fd, fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -38,6 +37,7 @@ def daemonize(stdin=DEFAULT_DEVNULL, stdout=DEFAULT_DEVNULL, stderr=DEFAULT_DEVN
     #no control terms, but become leader of PGRP
     os.chdir('/')
     os.setsid()
+    os.umask(0)
 
     #not leader of PGRP again
     try:
@@ -63,6 +63,7 @@ def daemonize(stdin=DEFAULT_DEVNULL, stdout=DEFAULT_DEVNULL, stderr=DEFAULT_DEVN
 
     #handle signals, for atexit..
     def sighandler(signum, frame):
+        logging.info('Recv SIG[%d]!', signum)
         signal.signal(signum, signal.SIG_DFL)
         os.kill(os.getpid(), signum)
     signal.signal(signal.SIGTERM, sighandler)
